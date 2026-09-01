@@ -1,0 +1,11 @@
+version: amount-2026-01
+maximum_amount: 500
+revenue_factor: 0.10
+net_asset_factor: 0.30
+risk_factors:
+  low: 1.0
+  medium: 0.8
+  high: 0.5
+  critical: 0.0
+minimum_data_quality: 0.5
+

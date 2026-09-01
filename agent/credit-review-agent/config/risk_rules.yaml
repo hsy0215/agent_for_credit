@@ -1,0 +1,43 @@
+version: risk-2026-01
+rules:
+  - id: FIN-DEBT-001
+    metric: debt_ratio
+    operator: gt
+    threshold: 0.70
+    score: 25
+    severity: high
+    category: 财务风险
+    description: 资产负债率高于70%
+  - id: FIN-GROWTH-001
+    metric: revenue_growth
+    operator: lt
+    threshold: -0.30
+    score: 20
+    severity: high
+    category: 经营风险
+    description: 营业收入同比下降超过30%
+  - id: FIN-MARGIN-001
+    metric: net_margin
+    operator: lt
+    threshold: 0
+    score: 20
+    severity: high
+    category: 财务风险
+    description: 最近一期净利润为负
+  - id: FIN-CURRENT-001
+    metric: current_ratio
+    operator: lt
+    threshold: 1.0
+    score: 15
+    severity: medium
+    category: 流动性风险
+    description: 流动比率低于1
+  - id: FIN-AR-001
+    metric: receivables_ratio
+    operator: gt
+    threshold: 0.50
+    score: 10
+    severity: medium
+    category: 回款风险
+    description: 应收账款占营业收入超过50%
+

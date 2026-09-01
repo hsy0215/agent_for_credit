@@ -1,0 +1,145 @@
+# 企业授信评审报告（Agent 建议稿）
+
+案件编号：{{ case.case_id }}
+
+## 一、企业概况
+
+- 企业名称：{{ case.facts.company_name.value or "材料未提供" }}{% if case.facts.company_name.evidence_ids %}（{{ case.facts.company_name.evidence_ids | join(", ") }}）{% endif %}
+- 成立年份：{{ case.facts.established_year.value or "材料未提供" }}{% if case.facts.established_year.evidence_ids %}（{{ case.facts.established_year.evidence_ids | join(", ") }}）{% endif %}
+- 所属行业：{{ case.facts.industry.value or "材料未提供" }}{% if case.facts.industry.evidence_ids %}（{{ case.facts.industry.evidence_ids | join(", ") }}）{% endif %}
+- 申请额度：{{ (case.facts.requested_amount.value ~ " 万元") if case.facts.requested_amount.value is not none else "材料未提供" }}{% if case.facts.requested_amount.evidence_ids %}（{{ case.facts.requested_amount.evidence_ids | join(", ") }}；原文：“{{ case.facts.requested_amount.source_quote }}”）{% endif %}
+- 征信记录中的担保交易余额：{{ (case.facts.guarantee_amount.value ~ " 万元") if case.facts.guarantee_amount.value is not none else "材料未提供" }}{% if case.facts.guarantee_amount.evidence_ids %}（{{ case.facts.guarantee_amount.evidence_ids | join(", ") }}；原文：“{{ case.facts.guarantee_amount.source_quote }}”）{% endif %}
+
+概况字段仅采用已通过 Evidence ID 校验的结构化事实；模型生成的自由叙述不作为本节事实来源。
+
+## 二、关键财务指标与口径
+
+- 资产负债率：{{ "%.2f%%" | format(case.risk.metrics.debt_ratio * 100) if case.risk.metrics.debt_ratio is not none else "材料不足，无法计算" }}
+- 流动比率：{{ "%.2f" | format(case.risk.metrics.current_ratio) if case.risk.metrics.current_ratio is not none else "材料不足，无法计算" }}
+- 净利率：{{ "%.2f%%" | format(case.risk.metrics.net_margin * 100) if case.risk.metrics.net_margin is not none else "材料不足，无法计算" }}
+- 可比口径营收增长率：{{ "%.2f%%" | format(case.risk.metrics.revenue_growth * 100) if case.risk.metrics.revenue_growth is not none else "缺少同主体、同口径、同期数据，未计算" }}
+
+{% if financial_rows %}
+### 申请主体财务快照
+
+| 主体 | 口径 | 期间 | 营业收入 | 净利润 | 总资产 | 总负债 | 证据 |
+|---|---|---:|---:|---:|---:|---:|---|
+{% for item in financial_rows %}
+| {{ item.entity_name or "未注明" }} | {{ item.scope or "未注明" }} | {{ item.period_label or item.year }} | {{ item.revenue if item.revenue is not none else "-" }} | {{ item.net_profit if item.net_profit is not none else "-" }} | {{ item.total_assets if item.total_assets is not none else "-" }} | {{ item.total_liabilities if item.total_liabilities is not none else "-" }} | {{ item.evidence_ids | join("、") }} |
+{% endfor %}
+
+{% if latest_financial and previous_financial %}
+本次增长率只比较可比期间：{{ latest_financial.entity_name or "申请主体" }} {{ latest_financial.period_label or latest_financial.year }} 与 {{ previous_financial.period_label or previous_financial.year }}。不会把阶段报表与全年报表直接同比。
+
+指标复核：
+
+- 资产负债率：{% if latest_financial.total_liabilities is not none and latest_financial.total_assets is not none %}{{ latest_financial.total_liabilities }} / {{ latest_financial.total_assets }} = {{ "%.2f%%" | format(case.risk.metrics.debt_ratio * 100) }}{% else %}缺少总负债或总资产，未计算{% endif %}
+- 净利率：{% if latest_financial.net_profit is not none and latest_financial.revenue is not none %}{{ latest_financial.net_profit }} / {{ latest_financial.revenue }} = {{ "%.2f%%" | format(case.risk.metrics.net_margin * 100) }}{% else %}缺少净利润或营业收入，未计算{% endif %}
+- 营收增长率：{% if latest_financial.revenue is not none and previous_financial.revenue is not none %}({{ latest_financial.revenue }} - {{ previous_financial.revenue }}) / {{ previous_financial.revenue }} = {{ "%.2f%%" | format(case.risk.metrics.revenue_growth * 100) }}{% else %}缺少可比营业收入，未计算{% endif %}
+{% endif %}
+{% endif %}
+
+{% if case.facts.conflicts %}
+### 待核实的数据冲突
+
+以下冲突未被系统擅自择一；在补齐口径证明前，相关指标和额度只能作为暂算结果：
+
+{% for conflict in case.facts.conflicts %}
+- {{ conflict }}
+{% endfor %}
+{% else %}
+材料抽取结果未发现显式数值冲突。
+{% endif %}
+
+## 三、风险触发、原因与证据
+
+风险总分：{{ case.risk.total_score }}/100；风险等级：{{ case.risk.risk_level }}；额度风险调整系数：{{ case.amount.risk_factor }}。
+
+系数传导关系：规则命中分数合计 {{ case.risk.total_score }} 分 → 风险等级 {{ case.risk.risk_level }} → 按额度规则 {{ case.amount.rule_version }} 取风险系数 {{ case.amount.risk_factor }}。该系数不是大模型主观给分。
+
+{% if risk_rows %}
+{% for row in risk_rows %}
+### {{ loop.index }}. {{ row.item.description }}（{{ row.item.rule_id }}）
+
+- 触发规则：指标 {{ row.item.metric }} 的实际值 {{ row.actual }}，判断条件为 {{ row.condition }}
+- 计算过程：{{ row.item.calculation or "由同一财务快照中的分子、分母确定性计算" }}
+- 风险影响：{{ row.item.category }}，严重度 {{ row.item.severity }}，本项计 {{ row.item.score }} 分
+- 原始证据：{{ row.item.evidence_ids | join("、") if row.item.evidence_ids else "未绑定原始证据；该风险只能视为待核实，必须补件后复算" }}
+{% if row.item.source_quotes %}
+{% for quote in row.item.source_quotes %}
+  - 原文：“{{ quote }}”
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% else %}
+- 当前可比口径数据未命中配置规则；这不代表不存在材料未披露的风险。
+{% endif %}
+
+## 四、额度测算
+
+- 基础额度：{{ case.amount.base_amount }} 万元
+- 风险调整系数：{{ case.amount.risk_factor }}
+- 数据完整度系数：{{ case.amount.data_quality_factor }}
+- 建议额度：{{ case.amount.suggested_amount }} 万元
+- 额度规则版本：{{ case.amount.rule_version }}
+
+具体计算链：
+
+{% for step in case.amount.steps %}
+- {{ step.name }}：{{ step.formula }} = {{ "%.2f" | format(step.value) }} 万元
+{% endfor %}
+
+## 五、审批建议及主要原因
+
+**{{ case.recommendation.value }}**
+
+主要原因：
+
+{% if case.facts.conflicts %}
+- 存在 {{ case.facts.conflicts | length }} 项抽取或财务口径冲突，尚不能确认唯一计算口径。
+{% endif %}
+{% if case.facts.requested_amount.value is not none and case.facts.guarantee_amount.value is not none and case.facts.requested_amount.value != case.facts.guarantee_amount.value %}
+- 申请额度 {{ case.facts.requested_amount.value }} 万元与征信记录中的担保交易余额 {{ case.facts.guarantee_amount.value }} 万元不一致，需确认两者关系。
+{% endif %}
+{% for row in risk_rows %}
+- {{ row.item.rule_id }}：{{ row.item.description }}，规则得分 {{ row.item.score }} 分{% if not row.item.evidence_ids %}，但缺少可定位原始证据{% endif %}。
+{% endfor %}
+{% if not case.facts.conflicts and not risk_rows and case.recommendation.value == "建议通过" %}
+- 结构化事实、确定性规则和额度测算未发现必须拒绝的明确条件。
+{% endif %}
+
+{% if case.review and not case.review.passed %}
+### 独立审核发现
+
+{% for finding in case.review.findings %}
+- [{{ finding.severity }}] {{ finding.code }}：{{ finding.message }}{% if finding.evidence_ids %}（证据：{{ finding.evidence_ids | join("、") }}）{% endif %}
+{% endfor %}
+{% endif %}
+
+## 六、建议补件清单
+
+{% if supplements %}
+{% for item in supplements %}
+### {{ loop.index }}. {{ item.owner }}：{{ item.issue }}
+
+- 应补/应修材料：{{ item.material }}
+- 核验目标：{{ item.purpose }}
+{% endfor %}
+{% else %}
+当前结构化核验未形成补件项；最终仍由有权限的审批人员复核。
+{% endif %}
+
+## 七、引用原文与定位
+
+以下摘录均来自解析后的脱敏原文；报告中的事实和风险应通过 Evidence ID 回溯：
+
+{% if evidence_excerpts %}
+{% for evidence in evidence_excerpts %}
+- **{{ evidence.evidence_id }}**（{{ evidence.location }}）
+  > {{ evidence.text }}
+{% endfor %}
+{% else %}
+- 当前报告没有可用的原文证据引用；不得据此作出自动审批。
+{% endif %}
+
+> 本报告为模型与规则引擎生成的辅助决策材料。模型只负责抽取和解释，风险分、额度和状态转换由确定性代码控制；最终结果须由有权限的审批人员确认。

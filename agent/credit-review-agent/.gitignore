@@ -1,0 +1,39 @@
+# Python / local tooling
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# API keys and machine-local configuration
+.env
+.env.*
+!.env.example
+mcp_agent.secrets.yaml
+*.secrets.yaml
+*.secret.yaml
+
+# Runtime state, logs, reports, PII mappings and model traces
+runtime/
+runtime-*/
+output/
+*.private.json
+*.log
+
+# Private datasets, predictions and source business documents
+evals/*.jsonl
+data/
+dataset/
+datasets/
+documents/
+reports/
+*.doc
+*.docx
+*.pdf
+*.xls
+*.xlsx
+*.csv
+
+# Keep only deliberately anonymized, synthetic fixtures under version control.
+!tests/fixtures/synthetic/**

@@ -1,0 +1,6 @@
+# USD per one million tokens. Update when deploying a concrete model.
+providers:
+  mock: {input: 0, output: 0}
+  lm_studio: {input: 0, output: 0}
+  deepseek: {input: 0, output: 0}
+  openai: {input: 0.25, output: 2.0}

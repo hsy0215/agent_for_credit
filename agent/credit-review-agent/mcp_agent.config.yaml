@@ -1,0 +1,24 @@
+execution_engine: asyncio
+logger:
+  transports: [console, file]
+  level: info
+  progress_display: true
+  path_settings:
+    path_pattern: "runtime/logs/mcp-agent-{unique_id}.jsonl"
+    unique_id: timestamp
+
+lm_studio:
+  base_url: "http://localhost:3456/v1"
+  default_model: "openai/gpt-oss-20b"
+
+openai:
+  default_model: "gpt-5-mini"
+
+# DeepSeek 的 Anthropic-compatible endpoint。API Key 只从环境变量注入。
+anthropic:
+  provider: anthropic
+  base_url: "https://api.deepseek.com/anthropic"
+  default_model: "deepseek-v4-pro"
+  # DeepSeek enables thinking by default, while generate_structured forces a
+  # schema tool via tool_choice. Disable thinking only for structured calls.
+  structured_output_thinking: "disabled"
