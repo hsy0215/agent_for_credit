@@ -196,15 +196,7 @@ uv run credit-review metrics --metrics-file output/metrics.jsonl
 
 监控包含阶段延迟、模型失败率、Token 估算、配置化成本估算、PII 残留率和人工修改率。精确 Token/账单应在生产环境接入具体 Provider 返回的 usage，而不是依赖字符估算。
 
-## 面试时如何讲这个项目
 
-建议围绕五个问题展开：
-
-1. 为什么采用显式工作流，而不是让一个 Agent 自由规划全部步骤？
-2. 如何确保报告里的事实可以回溯到原文证据？
-3. 为什么风险评分和额度计算不交给 LLM？
-4. 如何在没有 OpenAI API 时用 mock 或本地模型开发？
-5. 如何评测抽取准确率、额度误差、隐私泄漏率和人工修改率？
 
 ## 当前 MVP 与下一阶段
 
@@ -217,19 +209,3 @@ uv run credit-review metrics --metrics-file output/metrics.jsonl
 - 增加 FastAPI、审批 UI、RBAC、JWT、KMS、OpenTelemetry 和模型成本监控。
 - 将字符 Token/成本估算替换为 Provider 原始 usage 和账单数据。
 
-## GitHub 上传安全
-
-仓库只提交源码、测试、模板和非敏感规则配置。`.gitignore` 已排除：
-
-- `.env`、密钥配置和本地虚拟环境；
-- `evals/*.jsonl`、原始 DOCX/PDF/XLSX/CSV 及数据目录；
-- `runtime*`、`output`、模型日志、案件状态、生成报告和 PII 映射。
-
-对外只保留不含真实值的 `.env.example`。提交前用以下命令确认候选文件：
-
-```bash
-git status --short --untracked-files=all
-git diff --cached --name-only
-```
-
-如果密钥曾进入过 Git 历史，仅添加 `.gitignore` 不足以保护它；应立即在 Provider 后台撤销并重新生成密钥。
