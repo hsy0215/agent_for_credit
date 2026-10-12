@@ -2,7 +2,7 @@
 
 一个基于 `mcp-agent` 的、可审计的企业授信评审项目。它不是让 LLM 直接决定贷款，而是把 LLM 放在擅长的文档理解环节，把计算、规则、状态转换和最终审批留给确定性程序与人。
 
-## 为什么这是完整的 Agent 项目
+## 项目结构
 
 普通后端主要接收结构化请求并执行预定义逻辑；Agent 工程还要处理非结构化上下文、模型不确定性、工具调用、证据约束与评测。项目分层如下：
 
@@ -52,7 +52,7 @@ uv sync
 
 ```bash
 uv run credit-review review \
-  '../mcp-agent-main/评审报告-无项目编码/评审报告-无项目编码/300万以下项目/深圳裕策生物科技有限公司评审报告.docx' \
+  '../mcp-agent-main/评审报告-无项目编码/评审报告-无项目编码/300万以下项目/深圳xx生物科技有限公司评审报告.docx' \
   --provider mock
 ```
 
@@ -151,11 +151,7 @@ DeepSeek V4 默认开启 Thinking，而 `mcp-agent.generate_structured()` 通过
 uv run pytest
 ```
 
-## 当前是否使用 RAG
 
-当前版本**没有使用 RAG**。单篇长报告采用 Map-Reduce：完整解析文档后按字符预算分批抽取，再由确定性代码合并候选事实。Map-Reduce 解决的是单篇文档超出上下文窗口的问题，不是检索。
-
-很多篇报告也不必一律先做 RAG：若每篇都要独立审批，应逐篇运行同一工作流；只有需要查询授信政策、历史批复、企业历次材料或相似案例时，才应把这些外部语料切分、建立向量/关键词混合索引，并把检索片段连同来源 ID 交给 Agent。检索结果只能作为证据候选，不能直接替代当前申请材料或确定性规则。
 
 ## 如何限制大模型幻觉
 
@@ -200,7 +196,7 @@ uv run credit-review metrics --metrics-file output/metrics.jsonl
 
 ## 当前 MVP 与下一阶段
 
-当前已具备：DOCX/PDF/TXT 解析、OCR、跨页表格标识、Map-Reduce 抽取、证据 ID、增强 PII Mask、mcp-agent 结构化抽取、Risk Analyst/Writer/Reviewer、离线基线、规则引擎、额度引擎、案件状态、报告、人工审批、Temporal 适配、历史额度 Eval、监控和单元测试。
+当前已具备：DOCX/PDF/TXT 解析、OCR、跨页表格标识、证据 ID、增强 PII Mask、mcp-agent 结构化抽取、Risk Analyst/Writer/Reviewer、离线基线、规则引擎、额度引擎、案件状态、报告、人工审批、Temporal 适配、历史额度 Eval、监控和单元测试。
 
 生产化下一步：
 
